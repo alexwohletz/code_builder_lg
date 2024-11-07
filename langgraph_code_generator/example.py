@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from code_generator import CodeGeneratorModule
+from langgraph_code_generator.code_generator import CodeGeneratorModule
 import textwrap
 
 # Load environment variables
@@ -12,10 +12,7 @@ def main():
 
     # Example prompt
     prompt = """
-    Create a Python function that:
-    Checks to see if a number is a palindrome
-    Must be a function that takes an integer as input and returns a boolean
-    Should handle cases where the number is negative or the input is not an integer
+    "Create a function that sorts a list of integers using the bubble sort algorithm"
     """
 
     # Remove any common leading whitespace from the prompt
