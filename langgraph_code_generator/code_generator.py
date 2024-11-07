@@ -13,6 +13,8 @@ from langchain_anthropic import ChatAnthropic
 from langgraph.graph import StateGraph, END
 from e2b_code_interpreter import Sandbox
 from datetime import datetime
+import xml.etree.ElementTree as ET
+import textwrap
 
 # Configure logging
 logging.basicConfig(
@@ -236,18 +238,18 @@ Execution result:
             # Create timestamp for file naming
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            # Create a new directory for the package if it doesn't exist
-            package_dir = "generated_modules"
-            logger.info(f"Creating {package_dir} directory")
-            os.makedirs(package_dir, exist_ok=True)
+            # Create base directory for all generated modules if it doesn't exist
+            base_dir = os.path.join(os.path.dirname(__file__), "generated_modules")
+            logger.info(f"Creating {base_dir} directory")
+            os.makedirs(base_dir, exist_ok=True)
 
             # Create timestamped module directory
             module_name = f"generated_module_{timestamp}"
-            module_path = os.path.join(package_dir, module_name)
+            module_path = os.path.join(base_dir, module_name)
             os.makedirs(module_path, exist_ok=True)
 
             # Write the code to both a standalone file and the module
-            standalone_file = f"code_generated_{timestamp}.py"
+            standalone_file = os.path.join(module_path, f"code_generated_{timestamp}.py")
             logger.info(f"Writing code to {standalone_file}")
             with open(standalone_file, "w") as f:
                 f.write(state["code"])
@@ -276,8 +278,8 @@ setup(
             return {
                 "next": END,
                 "package_info": {
-                    "standalone_file": standalone_file,
-                    "module_path": module_path,
+                    "standalone_file": os.path.relpath(standalone_file),
+                    "module_path": os.path.relpath(module_path),
                 },
             }
 
@@ -423,10 +425,88 @@ Existing test cases (incorporate if provided):
 
         return workflow.compile()
 
+    def _format_review_result(self, review_result: Dict) -> str:
+        """Format the review result XML into a readable string."""
+        try:
+            # Get the raw XML review
+            xml_string = review_result.get("raw_review", "")
+
+            # Parse the XML
+            root = ET.fromstring(xml_string)
+
+            # Format the review
+            formatted = []
+            formatted.append("Code Review Summary:")
+            formatted.append("-" * 20)
+
+            # Add approval status
+            approved = root.find("approved").text.lower() == "true"
+            formatted.append(f"Approved: {'✅ Yes' if approved else '❌ No'}")
+
+            # Add issues
+            issues = root.find("issues")
+            if issues is not None and len(issues):
+                formatted.append("\nIssues Found:")
+                for issue in issues.findall("issue"):
+                    formatted.append(f"• {issue.text}")
+
+            # Add suggestions
+            suggestions = root.find("suggestions")
+            if suggestions is not None and len(suggestions):
+                formatted.append("\nSuggestions:")
+                for suggestion in suggestions.findall("suggestion"):
+                    formatted.append(f"• {suggestion.text}")
+
+            return "\n".join(formatted)
+        except Exception as e:
+            return f"Error formatting review: {str(e)}\nRaw review:\n{review_result.get('raw_review', '')}"
+
+    def _format_execution_result(self, execution_result: Dict) -> str:
+        """Format the execution result into a readable string."""
+        formatted = []
+        formatted.append("Execution Results:")
+        formatted.append("-" * 20)
+
+        # Add execution status
+        success = execution_result.get("success", False)
+        formatted.append(f"Status: {'✅ Success' if success else '❌ Failed'}")
+
+        # Add stdout if present
+        if stdout := execution_result.get("stdout"):
+            formatted.append("\nOutput:")
+            # Handle both string and list outputs
+            if isinstance(stdout, list):
+                formatted.extend(str(line) for line in stdout)
+            else:
+                formatted.append(str(stdout))
+
+        # Add stderr if present
+        if stderr := execution_result.get("stderr"):
+            formatted.append("\nErrors:")
+            # Handle both string and list outputs
+            if isinstance(stderr, list):
+                formatted.extend(str(line) for line in stderr)
+            else:
+                formatted.append(str(stderr))
+
+        # Add error if present
+        if error := execution_result.get("error"):
+            formatted.append("\nError Message:")
+            # Handle both string and list outputs
+            if isinstance(error, list):
+                formatted.extend(str(line) for line in error)
+            else:
+                formatted.append(str(error))
+
+        return "\n".join(formatted)
+
     def generate_module(self, prompt: str) -> Dict[str, Any]:
         """Generate a Python module from a prompt"""
         logger.info("Starting module generation process")
         logger.info(f"Initial prompt: {prompt[:100]}...")
+
+        # Remove any common leading whitespace from the prompt
+        prompt = textwrap.dedent(prompt)
 
         initial_state = {
             "messages": [HumanMessage(content=prompt)],
@@ -452,6 +532,8 @@ Existing test cases (incorporate if provided):
                     "code": result.get("code", ""),
                     "execution_result": result.get("execution_result", {}),
                     "review_result": result.get("review_result", {}),
+                    "formatted_execution": self._format_execution_result(result.get("execution_result", {})),
+                    "formatted_review": self._format_review_result(result.get("review_result", {}))
                 }
 
             logger.info("Module generation completed successfully")
@@ -460,6 +542,9 @@ Existing test cases (incorporate if provided):
                 "code": result["code"],
                 "execution_result": result["execution_result"],
                 "review_result": result["review_result"],
+                "formatted_execution": self._format_execution_result(result["execution_result"]),
+                "formatted_review": self._format_review_result(result["review_result"]),
+                "package_info": result.get("package_info", {})
             }
         except Exception as e:
             logger.error(f"Error during module generation: {str(e)}")

@@ -1,3 +1,4 @@
 .env
 .venv
 .pycache__
+generated_modules/*
