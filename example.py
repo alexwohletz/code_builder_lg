@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from langgraph_code_generator.code_generator import CodeGeneratorModule
+from langgraph_code_generator.orchestration import CodeGeneratorModule
 import textwrap
 
 # Load environment variables
