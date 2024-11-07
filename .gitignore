@@ -2,3 +2,7 @@
 .venv
 .pycache__
 generated_modules/*
+*.pyc
+*.cython
+**/__pycache__
+**/__pycache__/*
