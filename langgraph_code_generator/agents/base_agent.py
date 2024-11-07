@@ -7,7 +7,7 @@ import os
 
 # Define model constants from environment variables
 DEFAULT_MODEL = os.getenv("ANTHROPIC_LARGE_MODEL", "claude-3-5-sonnet-20241022")
-ANTHROPIC_SMALL_MODEL = os.getenv("ANTHROPIC_SMALL_MODEL", "claude-3-haiku-20240307")
+ANTHROPIC_SMALL_MODEL = os.getenv("ANTHROPIC_SMALL_MODEL", "claude-3-5-haiku-20241022")
 
 logger = logging.getLogger(__name__)
 
