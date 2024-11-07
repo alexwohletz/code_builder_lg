@@ -1,0 +1,6 @@
+langgraph
+langsmith
+langchain_anthropic
+langchain
+python-dotenv
+e2b-code-interpreter
