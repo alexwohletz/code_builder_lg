@@ -12,7 +12,9 @@ This module implements a workflow for generating, executing, reviewing, and pack
 ## Installation
 
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/awohletz/langgraph_code_generator.git
+cd langgraph_code_generator
+pip install -e .
 ```
 
 ## Usage
@@ -35,6 +37,12 @@ if result["success"]:
     print("Review result:", result["review_result"])
 else:
     print("Error:", result["error"])
+```
+
+or just update the `example.py` file with your own prompt and run it.
+
+```bash
+python langgraph_code_generator/example.py
 ```
 
 ## Workflow
