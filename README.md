@@ -47,5 +47,15 @@ else:
 ## Requirements
 
 - Python 3.8+
+
+## Environment Variables
+
 - E2B API key (set as environment variable `E2B_API_KEY`)
 - Anthropic API key (set as environment variable `ANTHROPIC_API_KEY`)
+- Anthropic large model (set as environment variable `ANTHROPIC_LARGE_MODEL`)
+- Anthropic small model (set as environment variable `ANTHROPIC_SMALL_MODEL`)
+Update the `.env.example` file with your keys and models and rename it to `.env`.
+
+## Visualization
+
+To visualize the workflow, run `python langgraph_code_generator/visualize_graph.py`.
