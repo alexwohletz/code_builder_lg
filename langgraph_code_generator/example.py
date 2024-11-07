@@ -5,6 +5,7 @@ from datetime import datetime
 import xml.etree.ElementTree as ET
 from typing import Dict
 import json
+import textwrap
 
 # Load environment variables
 load_dotenv()
@@ -58,17 +59,29 @@ def format_execution_result(execution_result: Dict) -> str:
     # Add stdout if present
     if stdout := execution_result.get('stdout'):
         formatted.append("\nOutput:")
-        formatted.append(stdout)
+        # Handle both string and list outputs
+        if isinstance(stdout, list):
+            formatted.extend(str(line) for line in stdout)
+        else:
+            formatted.append(str(stdout))
     
     # Add stderr if present
     if stderr := execution_result.get('stderr'):
         formatted.append("\nErrors:")
-        formatted.append(stderr)
+        # Handle both string and list outputs
+        if isinstance(stderr, list):
+            formatted.extend(str(line) for line in stderr)
+        else:
+            formatted.append(str(stderr))
     
     # Add error if present
     if error := execution_result.get('error'):
         formatted.append("\nError Message:")
-        formatted.append(str(error))
+        # Handle both string and list outputs
+        if isinstance(error, list):
+            formatted.extend(str(line) for line in error)
+        else:
+            formatted.append(str(error))
     
     return "\n".join(formatted)
 
@@ -84,20 +97,14 @@ def main():
     Should handle cases where the number is negative or the input is not an integer
     """
 
+    # Remove any common leading whitespace from the prompt
+    prompt = textwrap.dedent(prompt)
+
     # Generate the module
     result = generator.generate_module(prompt)
 
-    # Print and save the results
+    # Print the results
     if result["success"]:
-        # Create timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # Save the generated code
-        filename = f"code_generated_{timestamp}.py"
-        with open(filename, 'w') as f:
-            f.write(result["code"])
-        print(f"\nGenerated code saved to: {filename}")
-        
         # Print formatted results
         print("\n=== Generated Code ===")
         print(result["code"])
@@ -107,8 +114,13 @@ def main():
         
         print("\n=== Code Review ===")
         print(format_review_result(result["review_result"]))
+        
+        # Print file location information
+        if package_info := result.get("package_info"):
+            print(f"\nGenerated code saved to: {package_info['standalone_file']}")
+            print(f"Module package created at: {package_info['module_path']}")
     else:
-        print("Error:", result["error"])
+        print("Error:", result.get("error", "Unknown error occurred"))
 
 if __name__ == "__main__":
     main()

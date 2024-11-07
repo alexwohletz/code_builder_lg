@@ -1,7 +1,7 @@
 import os
 import operator
 import logging
-from typing import List, Dict, Any, Annotated, Sequence, TypedDict, Callable
+from typing import List, Dict, Any, Annotated, Sequence, TypedDict, Callable, Optional, Union
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_anthropic import ChatAnthropic
 from langchain.tools import Tool
@@ -9,6 +9,8 @@ from langgraph.graph import StateGraph, MessageGraph, END
 from langgraph.prebuilt.tool_executor import ToolExecutor
 from langchain_core.tools import BaseTool
 from e2b_code_interpreter import Sandbox
+import textwrap
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(
@@ -31,6 +33,7 @@ def dict_merge_reducer(a: Dict, b: Dict) -> Dict:
 class CodeGenerationState(TypedDict):
     messages: Annotated[List[BaseMessage], operator.add]
     code: Annotated[str, take_latest_reducer]
+    test_cases: Annotated[Dict, dict_merge_reducer]
     execution_result: Annotated[Dict, dict_merge_reducer]
     review_result: Annotated[Dict, dict_merge_reducer]
     next: Annotated[str, take_latest_reducer]
@@ -147,15 +150,14 @@ Execution result:
         """Execute the generated code in the e2b sandbox"""
         logger.info("Starting code execution step")
         try:
-            # Extract test data if provided in the prompt
-            test_data = self._extract_test_data(state["messages"][0].content)
-            
-            # Prepare the complete code with test data
+            # Combine function code with test cases
             complete_code = state["code"]
-            if test_data:
-                complete_code += f"\n\n# Test execution\n{test_data}"
+            if test_cases := state.get("test_cases", {}).get("code"):
+                complete_code += f"\n\n# Test execution\n{test_cases}"
             
-            logger.info("Executing code in sandbox")
+            # Log the complete code being executed
+            logger.info(f"Executing code:\n{complete_code}")
+            
             execution = self.sandbox.run_code(complete_code)
             success = not bool(execution.error)
             logger.info(f"Code execution complete. Success: {success}")
@@ -214,36 +216,136 @@ Execution result:
         """Package the approved code into a Python module"""
         logger.info("Starting code packaging step")
         try:
-            # Create a new directory for the package
-            logger.info("Creating generated_module directory")
-            os.makedirs("generated_module", exist_ok=True)
+            # Create timestamp for file naming
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             
-            # Write the code to __init__.py
-            logger.info("Writing code to __init__.py")
-            with open("generated_module/__init__.py", "w") as f:
+            # Create a new directory for the package if it doesn't exist
+            package_dir = "generated_modules"
+            logger.info(f"Creating {package_dir} directory")
+            os.makedirs(package_dir, exist_ok=True)
+            
+            # Create timestamped module directory
+            module_name = f"generated_module_{timestamp}"
+            module_path = os.path.join(package_dir, module_name)
+            os.makedirs(module_path, exist_ok=True)
+            
+            # Write the code to both a standalone file and the module
+            standalone_file = f"code_generated_{timestamp}.py"
+            logger.info(f"Writing code to {standalone_file}")
+            with open(standalone_file, "w") as f:
+                f.write(state["code"])
+            
+            # Write the code to __init__.py in the module directory
+            logger.info(f"Writing code to {module_path}/__init__.py")
+            with open(os.path.join(module_path, "__init__.py"), "w") as f:
                 f.write(state["code"])
             
             # Create setup.py
-            logger.info("Creating setup.py")
+            logger.info(f"Creating {module_path}/setup.py")
             setup_content = f'''
 from setuptools import setup, find_packages
 
 setup(
-    name="generated_module",
+    name="{module_name}",
     version="0.1.0",
     packages=find_packages(),
     description="Generated Python module",
 )
 '''
-            with open("generated_module/setup.py", "w") as f:
+            with open(os.path.join(module_path, "setup.py"), "w") as f:
                 f.write(setup_content)
             
             logger.info("Code packaging complete")
-            return {"next": END}
+            return {
+                "next": END,
+                "package_info": {
+                    "standalone_file": standalone_file,
+                    "module_path": module_path
+                }
+            }
             
         except Exception as e:
             logger.error(f"Error during code packaging: {str(e)}")
             return {"next": END}  # End even on error to prevent loops
+
+    def _generate_sample_data(self, state: CodeGenerationState) -> Dict:
+        """Generate and format test cases for the code"""
+        logger.info("Starting test case generation step")
+        
+        # Extract existing test data if provided
+        existing_test_data = self._extract_test_data(state["messages"][0].content)
+        
+        # Analyze the function signature
+        prompt = """Generate simple test code for the given function.
+IMPORTANT: 
+1. Return ONLY executable Python code
+2. DO NOT use unittest, pytest, or any test framework
+3. Use print statements to show test results
+4. Use basic assertions that won't halt execution
+5. Each test should print its input and result
+6. Format output to clearly show success/failure
+
+Example format:
+print("Testing valid inputs:")
+test_value = 121
+result = is_palindrome(test_value)
+print(f"Test value: {{test_value}}, Result: {{result}}, Expected: True")
+
+print("\\nTesting invalid inputs:")
+try:
+    test_value = "123"
+    result = is_palindrome(test_value)
+    print(f"Test value: {{test_value}}, Expected error but got: {{result}}")
+except TypeError as e:
+    print(f"Test value: {{test_value}}, Got expected error: {{e}}")
+
+Function to test:
+{code}
+
+Existing test cases (incorporate if provided):
+{existing_test_data}
+"""
+
+        try:
+            response = self.llm.invoke([
+                HumanMessage(content=prompt.format(
+                    code=state["code"],
+                    existing_test_data=existing_test_data if existing_test_data else "None provided"
+                ))
+            ])
+            
+            # Clean up the response to ensure it's only executable code
+            test_code = response.content.strip()
+            
+            # Remove any markdown code block markers
+            test_code = test_code.replace('```python', '').replace('```', '')
+            
+            # Remove any explanatory comments while keeping test section markers
+            test_code = '\n'.join(
+                line for line in test_code.splitlines()
+                if not (line.strip().startswith('#') and not any(
+                    marker in line.lower() 
+                    for marker in ['test', 'valid', 'invalid', 'edge', 'case']
+                ))
+            )
+            
+            logger.info("Test case generation complete")
+            return {
+                "test_cases": {
+                    "code": test_code,
+                    "original_data": existing_test_data
+                },
+                "next": "execute"
+            }
+        except Exception as e:
+            logger.error(f"Error generating test cases: {str(e)}")
+            return {
+                "test_cases": {
+                    "code": "# No test cases generated due to error",
+                    "original_data": existing_test_data
+                },
+                "next": "execute"
+            }
 
     def _create_workflow(self) -> StateGraph:
         """Create the LangGraph workflow"""
@@ -252,15 +354,19 @@ setup(
         # Add nodes
         logger.info("Adding workflow nodes")
         workflow.add_node("generate", self._generate_code)
+        workflow.add_node("generate_sample_data", self._generate_sample_data)
         workflow.add_node("execute", self._execute_code)
         workflow.add_node("review", self._review_code)
         workflow.add_node("package", self._package_code)
 
-        # Add conditional edges based on execution success and review approval
+        # Add edges
         logger.info("Adding workflow edges")
         
-        # After generate, always go to execute
-        workflow.add_edge("generate", "execute")
+        # After generate, go to generate_sample_data
+        workflow.add_edge("generate", "generate_sample_data")
+        
+        # After generate_sample_data, go to execute
+        workflow.add_edge("generate_sample_data", "execute")
         
         # After execute, conditionally route based on success
         def route_after_execute(state: CodeGenerationState) -> str:
@@ -298,15 +404,28 @@ setup(
         initial_state = {
             "messages": [HumanMessage(content=prompt)],
             "code": "",
+            "test_cases": {},
             "execution_result": {},
             "review_result": {},
             "next": "generate",
-            "attempts": 0  # Initialize attempt counter
+            "attempts": 0
         }
         
         try:
             logger.info("Invoking workflow")
             result = self.workflow.invoke(initial_state)
+            
+            # Check if we actually succeeded
+            if (not result.get("execution_result", {}).get("success", False) or 
+                not result.get("review_result", {}).get("approved", False)):
+                logger.warning("Module generation failed validation checks")
+                return {
+                    "success": False,
+                    "code": result.get("code", ""),
+                    "execution_result": result.get("execution_result", {}),
+                    "review_result": result.get("review_result", {})
+                }
+                
             logger.info("Module generation completed successfully")
             return {
                 "success": True,
