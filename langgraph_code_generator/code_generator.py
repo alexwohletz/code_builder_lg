@@ -15,6 +15,7 @@ from e2b_code_interpreter import Sandbox
 from datetime import datetime
 import xml.etree.ElementTree as ET
 import textwrap
+import ast
 
 # Configure logging
 logging.basicConfig(
@@ -172,10 +173,19 @@ Execution result:
         """Execute the generated code in the e2b sandbox"""
         logger.info("Starting code execution step")
         try:
-            # Combine function code with test cases
-            complete_code = state["code"]
-            if test_cases := state.get("test_cases", {}).get("code"):
-                complete_code += f"\n\n# Test execution\n{test_cases}"
+            # Clean up test cases before execution
+            test_code = state.get("test_cases", {}).get("code", "")
+            # Remove any markdown or comment markers
+            test_code = test_code.replace("```python", "").replace("```", "")
+            # Remove any lines that start with comments or descriptions
+            test_code = "\n".join(
+                line for line in test_code.splitlines()
+                if not (line.strip().startswith(("#", "Here", "Test", "This"))
+                       and "print" not in line)
+            )
+            
+            # Combine function code with cleaned test cases
+            complete_code = f"{state['code']}\n\n{test_code}"
 
             # Log the complete code being executed
             logger.info(f"Executing code:\n{complete_code}")
@@ -294,72 +304,85 @@ setup(
         # Extract existing test data if provided
         existing_test_data = self._extract_test_data(state["messages"][0].content)
 
-        # Analyze the function signature
-        prompt = """Generate simple test code for the given function.
+        # Extract function name and signature from the code
+        code = state["code"]
+        try:
+            tree = ast.parse(code)
+            function_def = next(node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef))
+            function_name = function_def.name
+            
+            # Analyze parameters
+            params = []
+            for arg in function_def.args.args:
+                param_name = arg.arg
+                param_type = arg.annotation.id if hasattr(arg, 'annotation') and hasattr(arg.annotation, 'id') else None
+                params.append((param_name, param_type))
+            
+            logger.info(f"Analyzing function: {function_name} with params: {params}")
+        except Exception as e:
+            logger.error(f"Error analyzing function signature: {e}")
+            function_name = "function"
+            params = []
+
+        prompt = f"""Generate simple test code for the following function.
 IMPORTANT: 
 1. Return ONLY executable Python code
-2. DO NOT use unittest, pytest, or any test framework
-3. Use print statements to show test results
-4. Use basic assertions that won't halt execution
-5. Each test should print its input and result
-6. Format output to clearly show success/failure
+2. DO NOT include any text comments or descriptions
+3. Use print statements for test output
+4. Include basic assertions
+5. Test both valid and invalid inputs
+6. Test edge cases appropriate for the function type
 
-Example format:
-print("Testing valid inputs:")
-test_value = 121
-result = is_palindrome(test_value)
-print(f"Test value: {{test_value}}, Result: {{result}}, Expected: True")
+Example test structure:
+print("Test valid inputs")
+result = {function_name}(<valid_input>)
+print(f"Input: <input>, Result: {{result}}")
+assert <condition>, "Test description"
 
-print("\\nTesting invalid inputs:")
+print("Test error cases")
 try:
-    test_value = "123"
-    result = is_palindrome(test_value)
-    print(f"Test value: {{test_value}}, Expected error but got: {{result}}")
-except TypeError as e:
-    print(f"Test value: {{test_value}}, Got expected error: {{e}}")
+    {function_name}(<invalid_input>)
+    print("Error: Expected exception not raised")
+except <ExpectedException>:
+    print("Successfully caught expected error")
 
 Function to test:
 {code}
 
-Existing test cases (incorporate if provided):
+Existing test data:
 {existing_test_data}
 """
 
         try:
             # Use the smaller model for test case generation
-            response = self.test_model.invoke(
-                [
-                    HumanMessage(
-                        content=prompt.format(
-                            code=state["code"],
-                            existing_test_data=(
-                                existing_test_data
-                                if existing_test_data
-                                else "None provided"
-                            ),
-                        )
-                    )
-                ]
-            )
+            response = self.test_model.invoke([HumanMessage(content=prompt)])
 
-            # Clean up the response to ensure it's only executable code
+            # Clean up the response
             test_code = response.content.strip()
-
-            # Remove any markdown code block markers
             test_code = test_code.replace("```python", "").replace("```", "")
 
-            # Remove any explanatory comments while keeping test section markers
+            # Remove non-code lines while preserving test markers
             test_code = "\n".join(
                 line
                 for line in test_code.splitlines()
-                if not (
-                    line.strip().startswith("#")
-                    and not any(
-                        marker in line.lower()
-                        for marker in ["test", "valid", "invalid", "edge", "case"]
-                    )
+                if (
+                    line.strip() 
+                    and not line.strip().startswith(("#", "Here", "This", "Note"))
+                    or "print" in line
+                    or "assert" in line
+                    or "try:" in line
+                    or "except" in line
                 )
             )
+
+            # Validate the test code
+            try:
+                compile(test_code, '<string>', 'exec')
+            except SyntaxError as e:
+                logger.error(f"Generated test code has syntax error: {e}")
+                # Generate minimal fallback test based on function signature
+                fallback_test = self._generate_fallback_test(function_name, params)
+                test_code = fallback_test
 
             logger.info("Test case generation complete")
             return {
@@ -368,13 +391,44 @@ Existing test cases (incorporate if provided):
             }
         except Exception as e:
             logger.error(f"Error generating test cases: {str(e)}")
+            fallback_test = self._generate_fallback_test(function_name, params)
             return {
                 "test_cases": {
-                    "code": "# No test cases generated due to error",
+                    "code": fallback_test,
                     "original_data": existing_test_data,
                 },
                 "next": "execute",
             }
+
+    def _generate_fallback_test(self, function_name: str, params: List[tuple]) -> str:
+        """Generate minimal fallback test based on function signature"""
+        # Generate default test values based on parameter types
+        test_values = []
+        for param_name, param_type in params:
+            if param_type == 'int':
+                test_values.append('0')
+            elif param_type == 'str':
+                test_values.append('"test"')
+            elif param_type == 'float':
+                test_values.append('0.0')
+            elif param_type == 'bool':
+                test_values.append('True')
+            elif param_type == 'list':
+                test_values.append('[]')
+            elif param_type == 'dict':
+                test_values.append('{}')
+            else:
+                test_values.append('None')
+        
+        # If no parameters were found, use a simple value
+        if not test_values:
+            test_values = ['0']
+
+        return f"""
+print("Basic function test")
+result = {function_name}({", ".join(test_values)})
+print(f"Result: {{result}}")
+"""
 
     def _create_workflow(self) -> StateGraph:
         """Create the LangGraph workflow"""
