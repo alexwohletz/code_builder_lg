@@ -15,7 +15,7 @@ class BaseAgent(ABC):
     def __init__(self, model_name: str = DEFAULT_MODEL):
         self.model = ChatAnthropic(
             model=model_name,
-            max_tokens=4096,  # Increase max output tokens
+            max_tokens=8096,  # Increase max output tokens
             temperature=0.1   # Lower temperature for more consistent outputs
         )
         

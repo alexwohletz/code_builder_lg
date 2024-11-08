@@ -5,47 +5,95 @@ import logging
 import xml.etree.ElementTree as ET
 import os
 from datetime import datetime
-
+import io, re
+from xml.dom import minidom
+from .utils import escape_python_code
 logger = logging.getLogger(__name__)
 
 class CodeGeneratorAgent(BaseAgent):
+    def _escape_code_content(self, xml_str: str) -> str:
+        """
+        Escape special characters in code content sections.
+        
+        Args:
+            xml_str: Raw XML string
+            
+        Returns:
+            XML string with escaped content sections
+        """
+        def escape_content(match):
+            """Escape special characters in content section"""
+            content = match.group(2)
+            return f"{match.group(1)}{escape_python_code(content)}{match.group(3)}"
+        
+        # Find and escape content between <content> tags
+        return re.sub(
+            r'(<content>)(.*?)(</content>)',
+            escape_content,
+            xml_str,
+            flags=re.DOTALL
+        )
+
     def _is_valid_xml(self, xml_str: str) -> bool:
-        """Validate if the string is complete, valid XML"""
+        """
+        Validate if the string is complete, valid XML according to project requirements.
+        
+        Args:
+            xml_str: String containing XML content to validate
+            
+        Returns:
+            bool: True if XML is valid according to project structure requirements
+        """
         try:
-            # Strip any leading/trailing whitespace
-            xml_str = xml_str.strip()
+            # Always escape the content sections first
+            xml_str = self._escape_code_content(xml_str)
             
-            # Parse the XML
-            root = ET.fromstring(xml_str)
-            
-            # Check for required elements, allowing for whitespace in element text
-            if root.tag != "project":
-                logger.warning(f"Root tag is '{root.tag}', expected 'project'")
+            # Parse with minidom
+            doc = minidom.parseString(xml_str)
+            root = doc.documentElement
+
+            # Check for basic structure
+            if root.tagName != "project":
+                logger.debug("Root element is not 'project'")
                 return False
-                
-            files_elem = root.find("files")
-            if files_elem is None:
-                logger.warning("Missing required 'files' element")
+
+            # Check for required elements
+            files = doc.getElementsByTagName("files")
+            if not files:
+                logger.debug("Missing 'files' element")
                 return False
-                
-            requirements_elem = root.find("requirements")
-            if requirements_elem is None:
-                logger.warning("Missing required 'requirements' element")
+
+            requirements = doc.getElementsByTagName("requirements")
+            if not requirements:
+                logger.debug("Missing 'requirements' element")
                 return False
-                
-            # Validate that at least one file exists
-            if len(files_elem.findall("file")) == 0:
-                logger.warning("No file elements found in 'files' section")
+
+            # Check files section
+            file_elements = doc.getElementsByTagName("file")
+            if not file_elements:
+                logger.debug("No file elements found")
                 return False
+
+            # Validate each file has required elements
+            for file_elem in file_elements:
+                name_elements = file_elem.getElementsByTagName("name")
+                content_elements = file_elem.getElementsByTagName("content")
                 
+                if not name_elements or not name_elements[0].firstChild:
+                    logger.debug("File missing name")
+                    return False
+                
+                if not content_elements:
+                    logger.debug("File missing content")
+                    return False
+
+            logger.debug("XML validation successful")
             return True
-            
-        except ET.ParseError as e:
-            logger.warning(f"XML parsing error: {str(e)}")
-            return False
+
         except Exception as e:
-            logger.warning(f"Validation error: {str(e)}")
+            logger.debug(f"XML validation error: {str(e)}")
             return False
+        
     prompt = """You are an expert Python developer. Analyze the requirements and generate an appropriate Python project structure.
 First, determine if the requirements need multiple files or can be solved with a single file.
 
@@ -129,13 +177,16 @@ Return ONLY the XML object, don't forget the closing tags.
                 with open(f"{debug_dir}/prompt_{timestamp}.txt", "w") as f:
                     f.write(user_prompt)
                 
-                with open(f"{debug_dir}/generated_code_{timestamp}_{retry+1}.xml", "w") as f:
-                    f.write(response)
+                # Escape the code content before saving and validating
+                escaped_response = self._escape_code_content(response)
                 
-                if self._is_valid_xml(response):
+                with open(f"{debug_dir}/generated_code_{timestamp}_{retry+1}.xml", "w") as f:
+                    f.write(escaped_response)
+                
+                if self._is_valid_xml(escaped_response):
                     logger.info("Code generation complete")
                     return {
-                        "code": response,
+                        "code": escaped_response,  # Return the escaped version
                         "next": "execute",
                         "attempts": attempts + 1,
                     }
@@ -148,7 +199,7 @@ Return ONLY the XML object, don't forget the closing tags.
         # If we get here, all retries failed
         logger.error("Failed to generate valid XML after all retries")
         return {
-            "code": "<project><files/><requirements/></project>",  # Return minimal valid XML
-            "next": "END",  # End the workflow
+            "code": "<project><files/><requirements/></project>",
+            "next": "END",
             "attempts": attempts + 1,
         }

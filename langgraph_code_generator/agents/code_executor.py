@@ -6,6 +6,7 @@ from e2b_code_interpreter import Sandbox
 import logging
 import os
 from datetime import datetime
+from .utils import unescape_python_code
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,8 @@ class CodeExecutorAgent(BaseAgent):
             for file_elem in xml_root.findall('.//file'):
                 name = file_elem.find('name').text.strip()
                 content = file_elem.find('content').text.strip()
+                # Unescape the content
+                content = unescape_python_code(content)
                 
                 # If there's a test file for this source file, append the test code
                 if test_xml_root is not None:
@@ -47,8 +50,10 @@ class CodeExecutorAgent(BaseAgent):
                     test_elem = test_xml_root.find(f".//file/[name='{test_name}']")
                     if test_elem is not None:
                         test_content = test_elem.find('content').text.strip()
+                        # Unescape the test content
+                        test_content = unescape_python_code(test_content)
                         # Append test code to the original file
-                        content = f"{content}\n\nif __name__ == '__main__':\n    # Test code\n{test_content}"
+                        content = f"{content}\n{test_content}"
                 
                 files[name] = content
             

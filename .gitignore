@@ -8,3 +8,4 @@ generated_modules/*
 **/__pycache__/*
 langgraph_code_generator.egg-info/*
 langgraph_code_generator/generated_modules/*
+.aider*

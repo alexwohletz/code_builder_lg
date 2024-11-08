@@ -12,7 +12,7 @@ def main():
 
     # Example prompt
     prompt = """
-    "Create a function that sorts a list of integers using the bubble sort algorithm"
+    "Create a function that merges and processes weather data from multiple sources, cleaning inconsistent data, calculating daily averages, and handling missing values.""
     """
 
     # Remove any common leading whitespace from the prompt
