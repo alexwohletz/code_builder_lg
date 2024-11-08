@@ -52,6 +52,8 @@ Return an XML object with the following structure:
 </project>
 
 Guidelines:
+DO NOT GENERATE UNIT TESTS, ONLY GENERATE CODE, A SEPERATE MODEL WILL HANDLE TESTS.
+
 1. Analyze if the project needs multiple files:
    - Use single file for simple scripts, utilities, or small programs
    - Use multiple files for:
