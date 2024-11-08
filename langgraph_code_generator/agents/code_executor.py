@@ -24,25 +24,35 @@ class CodeExecutorAgent(BaseAgent):
         logger.info("Starting code execution step")
         
         try:
-            # Parse the XML response containing multiple files
-            try:
-                logger.info(f"Parsing XML content:\n{state['code']}")
-                xml_root = ET.fromstring(state['code'])
-                files = {}
-                requirements = []
+            # Parse both the main code and test code XMLs
+            xml_root = ET.fromstring(state['code'])
+            if 'test_cases' in state and state['test_cases'].get('code'):
+                test_xml_root = ET.fromstring(state['test_cases']['code'])
+            else:
+                test_xml_root = None
                 
-                # Extract files
-                for file_elem in xml_root.findall('.//file'):
-                    name = file_elem.find('name').text.strip()
-                    content = file_elem.find('content').text.strip()
-                    files[name] = content
+            files = {}
+            requirements = []
+            
+            # Extract main code files
+            for file_elem in xml_root.findall('.//file'):
+                name = file_elem.find('name').text.strip()
+                content = file_elem.find('content').text.strip()
                 
-                # Extract requirements
-                for req_elem in xml_root.findall('.//requirement'):
-                    requirements.append(req_elem.text.strip())
-                    
-            except ET.ParseError:
-                raise ValueError("Invalid code format. Expected XML with project structure")
+                # If there's a test file for this source file, append the test code
+                if test_xml_root is not None:
+                    test_name = f"test_{name}"
+                    test_elem = test_xml_root.find(f".//file/[name='{test_name}']")
+                    if test_elem is not None:
+                        test_content = test_elem.find('content').text.strip()
+                        # Append test code to the original file
+                        content = f"{content}\n\nif __name__ == '__main__':\n    # Test code\n{test_content}"
+                
+                files[name] = content
+            
+            # Extract requirements
+            for req_elem in xml_root.findall('.//requirement'):
+                requirements.append(req_elem.text.strip())
 
             # Write all files to the sandbox - directories will be created automatically
             for filename, content in files.items():
