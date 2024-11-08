@@ -12,16 +12,39 @@ class CodeGeneratorAgent(BaseAgent):
     def _is_valid_xml(self, xml_str: str) -> bool:
         """Validate if the string is complete, valid XML"""
         try:
+            # Strip any leading/trailing whitespace
+            xml_str = xml_str.strip()
+            
+            # Parse the XML
             root = ET.fromstring(xml_str)
-            # Check for required elements
+            
+            # Check for required elements, allowing for whitespace in element text
             if root.tag != "project":
+                logger.warning(f"Root tag is '{root.tag}', expected 'project'")
                 return False
-            if not root.find("files"):
+                
+            files_elem = root.find("files")
+            if files_elem is None:
+                logger.warning("Missing required 'files' element")
                 return False
-            if not root.find("requirements"):
+                
+            requirements_elem = root.find("requirements")
+            if requirements_elem is None:
+                logger.warning("Missing required 'requirements' element")
                 return False
+                
+            # Validate that at least one file exists
+            if len(files_elem.findall("file")) == 0:
+                logger.warning("No file elements found in 'files' section")
+                return False
+                
             return True
-        except Exception:
+            
+        except ET.ParseError as e:
+            logger.warning(f"XML parsing error: {str(e)}")
+            return False
+        except Exception as e:
+            logger.warning(f"Validation error: {str(e)}")
             return False
     prompt = """You are an expert Python developer. Analyze the requirements and generate an appropriate Python project structure.
 First, determine if the requirements need multiple files or can be solved with a single file.
