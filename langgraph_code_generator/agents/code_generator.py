@@ -3,6 +3,8 @@ from langchain_core.messages import HumanMessage
 from .base_agent import BaseAgent
 import logging
 import xml.etree.ElementTree as ET
+import os
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -77,12 +79,30 @@ Return ONLY the XML object, don't forget the closing tags.
         attempts = state.get("attempts", 0)
         max_retries = 3  # Maximum number of retries for valid XML
         
+        # Log the input prompt
+        user_prompt = state["messages"][-1].content
+        logger.info(f"Received prompt:\n{user_prompt}")
+        
         for retry in range(max_retries):
             try:
                 response = self._invoke_model([
                     HumanMessage(content=self.prompt),
                     state["messages"][-1]
                 ])
+                
+                # Log the generated code
+                logger.info(f"Generated code (attempt {retry + 1}):\n{response}")
+                
+                # Save to debug files
+                debug_dir = "debug_output"
+                os.makedirs(debug_dir, exist_ok=True)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                
+                with open(f"{debug_dir}/prompt_{timestamp}.txt", "w") as f:
+                    f.write(user_prompt)
+                
+                with open(f"{debug_dir}/generated_code_{timestamp}_{retry+1}.xml", "w") as f:
+                    f.write(response)
                 
                 if self._is_valid_xml(response):
                     logger.info("Code generation complete")
