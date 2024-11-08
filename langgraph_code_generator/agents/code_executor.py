@@ -4,6 +4,8 @@ from io import StringIO
 from .base_agent import BaseAgent
 from e2b_code_interpreter import Sandbox
 import logging
+import os
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +55,21 @@ class CodeExecutorAgent(BaseAgent):
             # Extract requirements
             for req_elem in xml_root.findall('.//requirement'):
                 requirements.append(req_elem.text.strip())
+
+            # Store merged files in debug_output for verification
+            debug_dir = "debug_output"
+            os.makedirs(debug_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            # Save merged files
+            for filename, content in files.items():
+                debug_filepath = os.path.join(debug_dir, f"merged_{timestamp}_{filename}")
+                try:
+                    with open(debug_filepath, "w") as f:
+                        f.write(content)
+                    logger.info(f"Saved merged file for debugging: {debug_filepath}")
+                except Exception as e:
+                    logger.warning(f"Failed to save debug file {debug_filepath}: {e}")
 
             # Write all files to the sandbox - directories will be created automatically
             for filename, content in files.items():
