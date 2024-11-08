@@ -12,17 +12,42 @@ class CodeGeneratorAgent(BaseAgent):
         
         attempts = state.get("attempts", 0)
         
-        prompt = """You are a Python code generation agent. Generate ONLY the Python function code.
-DO NOT include any explanations, markdown formatting, or backticks.
-DO NOT include any text before or after the code.
-Start directly with 'def' and end with the last line of code.
+        prompt = """You are an expert Python developer. Generate a complete Python project.
+Return an XML object with the following structure:
 
-Requirements:
+<project>
+    <files>
+        <file>
+            <name>main.py</name>
+            <content>
+                def main():
+                    # Your code here
+            </content>
+        </file>
+        <file>
+            <name>utils.py</name>
+            <content>
+                def helper():
+                    # Your code here
+            </content>
+        </file>
+    </files>
+    <requirements>
+        <requirement>package1</requirement>
+        <requirement>package2</requirement>
+    </requirements>
+</project>
+
+Requirements for the code:
 1. Well-structured and modular
 2. Include proper error handling
 3. Follow PEP 8 style guidelines
 4. Include docstrings
 5. Be efficient and maintainable
+6. List all required pip packages with versions
+
+DO NOT include any explanations, markdown formatting, or backticks.
+Return ONLY the XML object.
 """
         
         last_message = state["messages"][-1]
@@ -35,7 +60,7 @@ Requirements:
         
         logger.info("Code generation complete")
         return {
-            "code": response,
+            "code": response,  # Now contains XML with multiple files
             "next": "execute",
             "attempts": attempts + 1,
-        } 
+        }

@@ -19,7 +19,7 @@ def main():
     prompt = textwrap.dedent(prompt)
 
     # Generate the module
-    result = generator.generate_module(prompt)
+    result = generator.generate_module(prompt, max_retries=2)
 
     # Print the results
     if result["success"]:

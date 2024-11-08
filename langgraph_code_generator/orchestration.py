@@ -13,6 +13,7 @@ from langgraph.graph import StateGraph, END
 import textwrap
 from langgraph_code_generator.agents import get_agent, list_agents
 from langgraph_code_generator.utils.code_formatters import format_review_result, format_execution_result
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -26,8 +27,6 @@ try:
 except ImportError:
     logger.warning("Graphviz is not installed. Workflow graph visualization will not be available.")
 
-MAX_RETRIES = 3  # Maximum number of generation attempts
-
 def take_latest_reducer(a: str, b: str) -> str:
     """Reducer that takes the latest value between two strings."""
     return b
@@ -38,7 +37,7 @@ def dict_merge_reducer(a: Dict, b: Dict) -> Dict:
 
 class CodeGenerationState(TypedDict):
     messages: Annotated[List[BaseMessage], operator.add]
-    code: Annotated[str, take_latest_reducer]
+    code: Annotated[str, take_latest_reducer]  # Contains XML project structure with files and requirements
     test_cases: Annotated[Dict, dict_merge_reducer]
     execution_result: Annotated[Dict, dict_merge_reducer]
     review_result: Annotated[Dict, dict_merge_reducer]
@@ -77,7 +76,7 @@ class CodeGeneratorModule:
         def route_after_execute(state: CodeGenerationState) -> str:
             if state["execution_result"].get("success", False):
                 return "review"
-            if state["attempts"] >= MAX_RETRIES:
+            if state["attempts"] >= self.max_retries:
                 return END
             return "generate"
         
@@ -86,7 +85,7 @@ class CodeGeneratorModule:
         def route_after_review(state: CodeGenerationState) -> str:
             if state["review_result"].get("approved", False):
                 return "package"
-            if state["attempts"] >= MAX_RETRIES:
+            if state["attempts"] >= self.max_retries:
                 return END
             return "generate"
         
@@ -100,8 +99,9 @@ class CodeGeneratorModule:
         
         return workflow.compile()
 
-    def generate_module(self, prompt: str) -> Dict[str, Any]:
+    def generate_module(self, prompt: str, max_retries: int = 3) -> Dict[str, Any]:
         """Generate a Python module from a prompt"""
+        self.max_retries = max_retries
         logger.info("Starting module generation process")
         logger.info(f"Initial prompt: {prompt[:100]}...")
         
@@ -110,7 +110,7 @@ class CodeGeneratorModule:
         
         initial_state = {
             "messages": [HumanMessage(content=prompt)],
-            "code": "",
+            "code": "",  # Will contain XML project structure with files and requirements
             "test_cases": {},
             "execution_result": {},
             "review_result": {},
@@ -188,9 +188,8 @@ class CodeGeneratorModule:
         # Save the graph
         dot.render(output_file, format="png", cleanup=True)
         logger.info(f"Workflow graph visualization saved to {output_file}.png")
-
-    def __del__(self):
-        """Ensure cleanup happens during garbage collection"""
-        for agent in self.agents.values():
-            if hasattr(agent, 'cleanup'):
-                agent.cleanup()
+        def __del__(self):
+            """Ensure cleanup happens during garbage collection"""
+            for agent in self.agents.values():
+                if hasattr(agent, 'cleanup'):
+                    agent.cleanup()

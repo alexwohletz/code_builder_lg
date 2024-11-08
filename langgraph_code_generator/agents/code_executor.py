@@ -1,4 +1,6 @@
 from typing import Dict, Any
+import xml.etree.ElementTree as ET
+from io import StringIO
 from .base_agent import BaseAgent
 from e2b_code_interpreter import Sandbox
 import logging
@@ -22,23 +24,66 @@ class CodeExecutorAgent(BaseAgent):
         logger.info("Starting code execution step")
         
         try:
-            # Clean up test cases
-            test_code = state.get("test_cases", {}).get("code", "")
-            test_code = self._clean_test_code(test_code)
+            # Parse the XML response containing multiple files
+            try:
+                logger.info(f"Parsing XML content:\n{state['code']}")
+                xml_root = ET.fromstring(state['code'])
+                files = {}
+                requirements = []
+                
+                # Extract files
+                for file_elem in xml_root.findall('.//file'):
+                    name = file_elem.find('name').text.strip()
+                    content = file_elem.find('content').text.strip()
+                    files[name] = content
+                
+                # Extract requirements
+                for req_elem in xml_root.findall('.//requirement'):
+                    requirements.append(req_elem.text.strip())
+                    
+            except ET.ParseError:
+                raise ValueError("Invalid code format. Expected XML with project structure")
+
+            # Write all files to the sandbox - directories will be created automatically
+            for filename, content in files.items():
+                filepath = f"/project/{filename}"
+                logger.info(f"Writing file: {filepath}")
+                # Convert string content to bytes for writing
+                self.sandbox.files.write(filepath, content.encode())
             
-            # Combine function code with cleaned test cases
-            complete_code = f"{state['code']}\n\n{test_code}"
-            logger.info(f"Executing code:\n{complete_code}")
+            # Write requirements.txt if any requirements exist
+            if requirements:
+                requirements_content = "\n".join(requirements)
+                self.sandbox.files.write("/project/requirements.txt", requirements_content.encode())
+                
+                # Install requirements
+                logger.info("Installing requirements")
+                install_result = self.sandbox.commands.run("cd /project && pip install -r requirements.txt")
+                if install_result.error:
+                    raise Exception(f"Failed to install requirements: {install_result.error}")
             
-            execution = self.sandbox.run_code(complete_code)
+            # Execute main.py if it exists
+            if "main.py" in files:
+                logger.info("Executing main.py")
+                logger.info(f"Code being executed:\n{files['main.py']}")
+                execution = self.sandbox.commands.run("cd /project && python main.py")
+            else:
+                # If no main.py, execute the first Python file
+                first_py_file = next((f for f in files.keys() if f.endswith('.py')), None)
+                if not first_py_file:
+                    raise ValueError("No Python files found in the generated code")
+                logger.info(f"Executing {first_py_file}")
+                logger.info(f"Code being executed:\n{files[first_py_file]}")
+                execution = self.sandbox.commands.run(f"cd /project && python {first_py_file}")
+            
             success = not bool(execution.error)
             logger.info(f"Code execution complete. Success: {success}")
             
             result = {
                 "execution_result": {
                     "success": success,
-                    "stdout": execution.logs.stdout,
-                    "stderr": execution.logs.stderr,
+                    "stdout": execution.stdout,
+                    "stderr": execution.stderr,
                     "error": execution.error,
                 }
             }
@@ -56,7 +101,6 @@ class CodeExecutorAgent(BaseAgent):
                 "execution_result": {"success": False, "error": str(e)},
                 "next": "generate",
             }
-    
     def _clean_test_code(self, test_code: str) -> str:
         """Clean up test cases before execution"""
         test_code = test_code.replace("```python", "").replace("```", "")
