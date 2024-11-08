@@ -2,17 +2,26 @@ from typing import Dict, Any
 from langchain_core.messages import HumanMessage
 from .base_agent import BaseAgent
 import logging
+import xml.etree.ElementTree as ET
 
 logger = logging.getLogger(__name__)
 
 class CodeGeneratorAgent(BaseAgent):
-    def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate code based on the prompt"""
-        logger.info("Starting code generation step")
-        
-        attempts = state.get("attempts", 0)
-        
-        prompt = """You are an expert Python developer. Analyze the requirements and generate an appropriate Python project structure.
+    def _is_valid_xml(self, xml_str: str) -> bool:
+        """Validate if the string is complete, valid XML"""
+        try:
+            root = ET.fromstring(xml_str)
+            # Check for required elements
+            if root.tag != "project":
+                return False
+            if not root.find("files"):
+                return False
+            if not root.find("requirements"):
+                return False
+            return True
+        except Exception:
+            return False
+    prompt = """You are an expert Python developer. Analyze the requirements and generate an appropriate Python project structure.
 First, determine if the requirements need multiple files or can be solved with a single file.
 
 Return an XML object with the following structure:
@@ -61,17 +70,37 @@ DO NOT include any explanations, markdown formatting, or backticks.
 Return ONLY the XML object.
 """
         
-        last_message = state["messages"][-1]
-        logger.info(f"Processing user prompt: {last_message.content[:100]}...")
+    def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate code based on the prompt"""
+        logger.info("Starting code generation step")
         
-        response = self._invoke_model([
-            HumanMessage(content=prompt),
-            last_message
-        ])
+        attempts = state.get("attempts", 0)
+        max_retries = 3  # Maximum number of retries for valid XML
         
-        logger.info("Code generation complete")
+        for retry in range(max_retries):
+            try:
+                response = self._invoke_model([
+                    HumanMessage(content=self.prompt),
+                    state["messages"][-1]
+                ])
+                
+                if self._is_valid_xml(response):
+                    logger.info("Code generation complete")
+                    return {
+                        "code": response,
+                        "next": "execute",
+                        "attempts": attempts + 1,
+                    }
+                
+                logger.warning(f"Invalid XML generated (attempt {retry + 1}/{max_retries})")
+                
+            except Exception as e:
+                logger.error(f"Error during code generation: {str(e)}")
+        
+        # If we get here, all retries failed
+        logger.error("Failed to generate valid XML after all retries")
         return {
-            "code": response,  # Now contains XML with multiple files
-            "next": "execute",
+            "code": "<project><files/><requirements/></project>",  # Return minimal valid XML
+            "next": "END",  # End the workflow
             "attempts": attempts + 1,
         }
