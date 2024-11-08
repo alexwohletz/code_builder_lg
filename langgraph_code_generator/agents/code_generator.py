@@ -67,7 +67,7 @@ Guidelines:
    - List all required pip packages with specific versions
 
 DO NOT include any explanations, markdown formatting, or backticks.
-Return ONLY the XML object.
+Return ONLY the XML object, don't forget the closing tags.
 """
         
     def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
