@@ -13,7 +13,11 @@ logger = logging.getLogger(__name__)
 
 class BaseAgent(ABC):
     def __init__(self, model_name: str = DEFAULT_MODEL):
-        self.model = ChatAnthropic(model=model_name)
+        self.model = ChatAnthropic(
+            model=model_name,
+            max_tokens=4096,  # Increase max output tokens
+            temperature=0.1   # Lower temperature for more consistent outputs
+        )
         
     @abstractmethod
     def run(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -23,7 +27,10 @@ class BaseAgent(ABC):
     def _invoke_model(self, messages: list) -> str:
         """Helper method to invoke the model with proper error handling"""
         try:
-            response = self.model.invoke(messages)
+            response = self.model.invoke(
+                messages,
+                max_tokens=4096,  # Ensure it's set per-request too
+            )
             return response.content
         except Exception as e:
             logger.error(f"Error invoking model: {e}")

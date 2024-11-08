@@ -26,6 +26,9 @@ class CodeGeneratorAgent(BaseAgent):
     prompt = """You are an expert Python developer. Analyze the requirements and generate an appropriate Python project structure.
 First, determine if the requirements need multiple files or can be solved with a single file.
 
+IMPORTANT: Your response must be a complete, valid XML document. Do not truncate or abbreviate the code.
+Include the full implementation of all functions and classes.
+
 Return an XML object with the following structure:
 
 <project>
