@@ -1,14 +1,18 @@
 import os
 from dotenv import load_dotenv
-from langgraph_code_generator.orchestration import CodeGeneratorModule
+from langgraph_code_generator.orchestration import CodeGeneratorOrchestrator
 import textwrap
+from langgraph_code_generator.logging_config import configure_logging
 
 # Load environment variables
 load_dotenv()
 
 def main():
+    # Configure logging first
+    configure_logging()
+    
     # Initialize the module
-    generator = CodeGeneratorModule()
+    orchestrator = CodeGeneratorOrchestrator()
 
     # Example prompt
     prompt = """
@@ -19,7 +23,7 @@ def main():
     prompt = textwrap.dedent(prompt)
 
     # Generate the module
-    result = generator.generate_module(prompt, max_retries=2)
+    result = orchestrator.generate_code(prompt)
 
     # Print the results
     if result["success"]:

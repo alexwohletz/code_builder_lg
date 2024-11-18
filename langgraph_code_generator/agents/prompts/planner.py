@@ -12,59 +12,70 @@ Example: "Create a Python application that processes CSV files and generates sum
 
 Example Output (XML, no comments, markdown, or other formatting):
 
-<planning>
-    <requirements>
-        <requirement id="req1">Process CSV files.</requirement>
-        <requirement id="req2">Generate summary statistics.</requirement>
-        <requirement id="req3">Handle large datasets efficiently.</requirement>
-        <requirement id="req4">Provide error handling for missing or corrupted files.</requirement>
-    </requirements>
-    <modules>
-        <module id="mod1">
-            <name>DataProcessor</name>
-            <description>Handles CSV file reading and preprocessing.</description>
-            <dependencies>
-                <dependency>pandas</dependency>
-                <dependency>csv</dependency>
-            </dependencies>
-        </module>
-        <module id="mod2">
-            <name>StatisticsGenerator</name>
-            <description>Generates summary statistics from processed data.</description>
-            <dependencies>
-                <dependency>numpy</dependency>
-            </dependencies>
-        </module>
-        <module id="mod3">
-            <name>ErrorHandler</name>
-            <description>Manages error detection and handling.</description>
-            <dependencies>
-                <dependency>logging</dependency>
-            </dependencies>
-        </module>
-    </modules>
-    <file_structure>
-        <file>
-            <file_name>main.py</file_name>
-            <module>DataProcessor</module>
-            <purpose>Main entry point of the application.</purpose>
-        </file>
-        <file>
-            <file_name>utils.py</file_name>
-            <module>DataProcessor</module>
-            <purpose>Utility functions for data processing.</purpose>
-        </file>
-        <file>
-            <file_name>stats.py</file_name>
-            <module>StatisticsGenerator</module>
-            <purpose>Functions to compute summary statistics.</purpose>
-        </file>
-        <file>
-            <file_name>error_handler.py</file_name>
-            <module>ErrorHandler</module>
-            <purpose>Error detection and handling mechanisms.</purpose>
-        </file>
-        <!-- Additional files as needed -->
-    </file_structure>
-</planning>
+<code_project>
+    <metadata>
+        <project_name>ExampleProject</project_name>
+        <description>Process CSV files and generate statistics</description>
+        <author>CodePlanner</author>
+        <creation_date>2024-01-01</creation_date>
+    </metadata>
+    <planning>
+        <requirements>
+            <requirement id="req1">Process CSV files.</requirement>
+            <requirement id="req2">Generate summary statistics.</requirement>
+            <requirement id="req3">Handle large datasets efficiently.</requirement>
+            <requirement id="req4">Provide error handling for missing or corrupted files.</requirement>
+        </requirements>
+        <modules>
+            <module id="mod1">
+                <name>DataProcessor</name>
+                <description>Handles CSV file reading and preprocessing.</description>
+                <dependencies>
+                    <dependency>pandas</dependency>
+                    <dependency>csv</dependency>
+                </dependencies>
+            </module>
+            <module id="mod2">
+                <name>StatisticsGenerator</name>
+                <description>Generates summary statistics from processed data.</description>
+                <dependencies>
+                    <dependency>numpy</dependency>
+                </dependencies>
+            </module>
+            <module id="mod3">
+                <name>ErrorHandler</name>
+                <description>Manages error detection and handling.</description>
+                <dependencies>
+                    <dependency>logging</dependency>
+                </dependencies>
+            </module>
+        </modules>
+        <file_structure>
+            <file>
+                <file_name>main.py</file_name>
+                <module>DataProcessor</module>
+                <purpose>Main entry point of the application.</purpose>
+            </file>
+            <file>
+                <file_name>utils.py</file_name>
+                <module>DataProcessor</module>
+                <purpose>Utility functions for data processing.</purpose>
+            </file>
+            <file>
+                <file_name>stats.py</file_name>
+                <module>StatisticsGenerator</module>
+                <purpose>Functions to compute summary statistics.</purpose>
+            </file>
+            <file>
+                <file_name>error_handler.py</file_name>
+                <module>ErrorHandler</module>
+                <purpose>Error detection and handling mechanisms.</purpose>
+            </file>
+        </file_structure>
+    </planning>
+    <generation/>
+    <dependencies/>
+    <build/>
+    <package/>
+</code_project>
 """

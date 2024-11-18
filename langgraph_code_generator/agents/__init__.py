@@ -1,18 +1,19 @@
 from typing import Dict, Type
 from .base_agent import BaseAgent
 from .code_generator import CodeGeneratorAgent
-from .code_reviewer import CodeReviewAgent
+from .code_iterator import CodeIteratorAgent
+from .code_planner import CodePlannerAgent
 from .code_executor import CodeExecutorAgent
 from .code_packager import CodePackagerAgent
-from .test_generator import TestGeneratorAgent
+
 
 # Registry of all available agents
 AGENT_REGISTRY: Dict[str, Type[BaseAgent]] = {
-    "generate": CodeGeneratorAgent,
-    "generate_sample_data": TestGeneratorAgent,
-    "execute": CodeExecutorAgent,
-    "review": CodeReviewAgent,
-    "package": CodePackagerAgent,
+    "generator": CodeGeneratorAgent,
+    "sandbox": CodeExecutorAgent,
+    "packager": CodePackagerAgent,
+    "iterator": CodeIteratorAgent,
+    "planner": CodePlannerAgent,
 }
 
 def get_agent(agent_name: str, **kwargs) -> BaseAgent:
