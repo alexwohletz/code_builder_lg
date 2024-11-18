@@ -59,9 +59,10 @@ python langgraph_code_generator/example.py
 ## Environment Variables
 
 - E2B API key (set as environment variable `E2B_API_KEY`)
-- Anthropic API key (set as environment variable `ANTHROPIC_API_KEY`)
-- Anthropic large model (set as environment variable `ANTHROPIC_LARGE_MODEL`)
-- Anthropic small model (set as environment variable `ANTHROPIC_SMALL_MODEL`)
+- OpenRouter API key (set as environment variable `OPENROUTER_API_KEY`)
+- OpenRouter base URL (set as environment variable `OPENROUTER_BASE_URL`)
+- OpenRouter large model (set as environment variable `OPENROUTER_LARGE_MODEL`)
+- OpenRouter small model (set as environment variable `OPENROUTER_SMALL_MODEL`)
 Update the `.env.example` file with your keys and models and rename it to `.env`.
 
 ## Visualization

@@ -1,12 +1,12 @@
 from typing import Dict, Any, List, Tuple
 from langchain_core.messages import HumanMessage
-from .base_agent import BaseAgent, DEFAULT_MODEL
+from ..langgraph_code_generator.agents.base_agent import BaseAgent, DEFAULT_MODEL
 import ast
 import logging
 import re
 import xml.etree.ElementTree as ET
 from io import StringIO
-from .utils import unescape_python_code
+from ..langgraph_code_generator.agents.utils import unescape_python_code
 
 logger = logging.getLogger(__name__)
 

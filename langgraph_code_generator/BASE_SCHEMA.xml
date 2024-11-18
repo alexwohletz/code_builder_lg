@@ -1,0 +1,147 @@
+<code_project>
+    <metadata>
+        <project_name>ExampleProject</project_name>
+        <description>A brief description of the project.</description>
+        <author>Author Name</author>
+        <creation_date>2023-10-01</creation_date>
+    </metadata>
+    
+    <planning>
+        <requirements>
+            <requirement id="req1">Process CSV files.</requirement>
+            <requirement id="req2">Generate summary statistics.</requirement>
+            <!-- Additional requirements -->
+        </requirements>
+        <modules>
+            <module id="mod1">
+                <name>DataProcessor</name>
+                <description>Handles CSV processing.</description>
+                <dependencies>
+                    <dependency>pandas</dependency>
+                    <dependency>csv</dependency>
+                </dependencies>
+            </module>
+            <module id="mod2">
+                <name>StatisticsGenerator</name>
+                <description>Generates summary statistics.</description>
+                <dependencies>
+                    <dependency>numpy</dependency>
+                </dependencies>
+            </module>
+            <!-- Additional modules -->
+        </modules>
+        <file_structure>
+            <file>
+                <file_name>main.py</file_name>
+                <module>DataProcessor</module>
+                <purpose>Main entry point.</purpose>
+            </file>
+            <file>
+                <file_name>utils.py</file_name>
+                <module>DataProcessor</module>
+                <purpose>Utility functions.</purpose>
+            </file>
+            <!-- Additional files -->
+        </file_structure>
+    </planning>
+
+    <generation>
+        <files>
+            <file>
+                <file_name>main.py</file_name>
+                <file_path>src/main.py</file_path>
+                <file_contents>
+                    <![CDATA[
+                    # Python code generated for main.py
+                    def main():
+                        pass
+                    ]]>
+                </file_contents>
+                <dependencies>
+                    <dependency>pandas</dependency>
+                    <dependency>numpy</dependency>
+                </dependencies>
+            </file>
+            <!-- Additional <file> elements as needed -->
+        </files>
+        <test_suite>
+                <suite_name>CSVProcessingTests</suite_name>
+                <test_files>
+                    <test_file>
+                        <test_file_name>test_main.py</test_file_name>
+                        <test_file_path>tests/test_main.py</test_file_path>
+                        <tests>
+                        <test>
+                            <test_name>test_main_function</test_name>
+                            <test_description>Verifies that the main function executes without errors.</test_description>
+                            <test_code>
+                                <![CDATA[
+                                import unittest
+                                from src.main import main
+        
+                                class TestMain(unittest.TestCase):
+                                    def test_main_function(self):
+                                        self.assertIsNone(main())
+        
+                                if __name__ == '__main__':
+                                    unittest.main()
+                                ]]>
+                            </test_code>
+                        </test>
+                        <!-- Additional <test> elements as needed -->
+                    </tests>
+                    <test_results>
+                        <result>
+                            <status>passed</status>
+                            <output>All tests passed.</output>
+                        </result>
+                    </test_results>
+                </test_file>
+                <!-- Additional <test_file> elements as needed -->
+            </test_files>
+        </test_suite>
+    </generation>
+    
+    <dependencies>
+        <dependency>
+            <name>pandas</name>
+            <version>1.3.3</version>
+        </dependency>
+        <dependency>
+            <name>numpy</name>
+            <version>1.21.2</version>
+        </dependency>
+        <!-- Additional dependencies as needed -->
+    </dependencies>
+    
+    <build>
+        <build_script>
+            <![CDATA[
+            #!/bin/bash
+            pip install -r requirements.txt
+            python -m unittest discover -s tests
+            ]]>
+        </build_script>
+        <build_status>success</build_status>
+        <build_logs>
+            <![CDATA[
+            Installing dependencies...
+            Running tests...
+            All tests passed.
+            ]]>
+        </build_logs>
+    </build>
+    
+    <package>
+        <package_name>ExampleProject</package_name>
+        <package_version>1.0.0</package_version>
+        <package_files>
+            <package_file>src/main.py</package_file>
+            <!-- Additional package files -->
+        </package_files>
+        <package_metadata>
+            <license>MIT</license>
+            <repository>https://github.com/username/ExampleProject</repository>
+        </package_metadata>
+    </package>
+</code_project>

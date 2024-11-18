@@ -1,6 +1,6 @@
 from typing import Dict, Any
 from langchain_core.messages import HumanMessage
-from .base_agent import BaseAgent, ANTHROPIC_SMALL_MODEL
+from ..langgraph_code_generator.agents.base_agent import BaseAgent, ANTHROPIC_SMALL_MODEL
 import logging
 import xml.etree.ElementTree as ET
 

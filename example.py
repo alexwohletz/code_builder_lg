@@ -12,7 +12,7 @@ def main():
 
     # Example prompt
     prompt = """
-    "Create a function that merges and processes weather data from multiple sources, cleaning inconsistent data, calculating daily averages, and handling missing values.""
+    Create a function that finds a palindrome in a string or integer.
     """
 
     # Remove any common leading whitespace from the prompt

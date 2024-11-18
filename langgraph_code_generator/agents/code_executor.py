@@ -90,7 +90,7 @@ class CodeExecutorAgent(BaseAgent):
                 
                 # Install requirements
                 logger.info("Installing requirements")
-                install_result = self.sandbox.commands.run("cd /project && pip install -r requirements.txt")
+                install_result = self.sandbox.commands.run("cd /project && pip install -r requirements.txt", background=True)
                 if install_result.error:
                     raise Exception(f"Failed to install requirements: {install_result.error}")
             
@@ -98,7 +98,7 @@ class CodeExecutorAgent(BaseAgent):
             if "main.py" in files:
                 logger.info("Executing main.py")
                 logger.info(f"Code being executed:\n{files['main.py']}")
-                execution = self.sandbox.commands.run("cd /project && python main.py")
+                execution = self.sandbox.commands.run("cd /project && python main.py", background=True)
             else:
                 # If no main.py, execute the first Python file
                 first_py_file = next((f for f in files.keys() if f.endswith('.py')), None)
@@ -106,7 +106,7 @@ class CodeExecutorAgent(BaseAgent):
                     raise ValueError("No Python files found in the generated code")
                 logger.info(f"Executing {first_py_file}")
                 logger.info(f"Code being executed:\n{files[first_py_file]}")
-                execution = self.sandbox.commands.run(f"cd /project && python {first_py_file}")
+                execution = self.sandbox.commands.run(f"cd /project && python {first_py_file}", background=True)
             
             success = not bool(execution.error)
             logger.info(f"Code execution complete. Success: {success}")
