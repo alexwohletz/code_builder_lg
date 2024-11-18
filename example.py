@@ -24,25 +24,7 @@ def main():
 
     # Generate the module
     result = orchestrator.generate_code(prompt)
-
-    # Print the results
-    if result["success"]:
-        # Print formatted results
-        print("\n=== Generated Code ===")
-        print(result["code"])
-
-        print("\n=== Execution Results ===")
-        print(result["formatted_execution"])
-
-        print("\n=== Code Review ===")
-        print(result["formatted_review"])
-
-        # Print file location information
-        if package_info := result.get("package_info"):
-            print(f"\nGenerated code saved to: {package_info['standalone_file']}")
-            print(f"Module package created at: {package_info['module_path']}")
-    else:
-        print("Error:", result.get("error", "Unknown error occurred"))
+    print(result)
 
 if __name__ == "__main__":
     main()
