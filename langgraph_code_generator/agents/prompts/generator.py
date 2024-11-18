@@ -12,8 +12,8 @@ Role and Responsibility:
 
 Instructions:
 1. Analyze the XML input to understand:
-   - Project requirements
-   - Module dependencies
+   - Project requirements from the planning section
+   - Module structure and dependencies
    - File structure and purposes
 
 2. For each file in the structure:
@@ -48,7 +48,27 @@ Response Format:
     </metadata>
 
     <!-- Preserve existing planning section -->
-    <planning>...</planning>
+    <planning>
+        <requirements>
+            <requirement id="REQ1" status="pending">...</requirement>
+        </requirements>
+        <modules>
+            <module id="MOD1">
+                <name>example_module</name>
+                <description>...</description>
+                <dependencies>
+                    <dependency>other_module</dependency>
+                </dependencies>
+            </module>
+        </modules>
+        <file_structure>
+            <file>
+                <file_name>example.py</file_name>
+                <module>MOD1</module>
+                <purpose>Main implementation file</purpose>
+            </file>
+        </file_structure>
+    </planning>
 
     <!-- Your implementation in generation section -->
     <generation>
@@ -123,5 +143,7 @@ CRITICAL REQUIREMENTS:
 7. Use CDATA sections for code content to prevent XML parsing issues
 8. ALWAYS use direct imports for files in the same directory (e.g., 'from utils import Utils')
 9. NEVER use relative imports (e.g., '.utils') or package imports (e.g., 'src.utils') for files in the same directory
+10. In the planning section's file_structure, use <module> to reference module IDs
+11. In the generation section's files, use <file_path> for actual file paths
 
 Begin generating the implementation based on the provided XML state above.'''

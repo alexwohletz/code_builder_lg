@@ -26,11 +26,11 @@ class CodeExecutorAgent(BaseAgent):
             self._sandbox = Sandbox()
         return self._sandbox
 
-    def _save_execution_files(self, files: Dict[str, str], timestamp: str) -> None:
+    def _save_execution_files(self, files: Dict[str, str], timestamp: str, run_dir: Path) -> None:
         """Save files being executed for debugging."""
         try:
             for filepath, content in files.items():
-                debug_file = self.debug_dir / f"execution_{timestamp}_{os.path.basename(filepath)}"
+                debug_file = run_dir / f"{os.path.basename(filepath)}"
                 with open(debug_file, 'w', encoding='utf-8') as f:
                     f.write(content)
                 logger.info(f"Saved execution file to {debug_file}")
@@ -209,9 +209,19 @@ class CodeExecutorAgent(BaseAgent):
             if not files:
                 raise ValueError("No files found in XML state")
             
-            # Save files for debugging
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self._save_execution_files(files, timestamp)
+            # Get run timestamp from state or create new one
+            timestamp = state.get("run_timestamp")
+            if not timestamp:
+                logger.warning("No run timestamp found in state, generating new one")
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # Create run directory
+            run_dir = self.debug_dir / f"run_{timestamp}"
+            run_dir.mkdir(exist_ok=True)
+            
+            # Save files for debugging in the run directory
+            execution_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self._save_execution_files(files, execution_timestamp, run_dir)
             
             # Write files to sandbox preserving directory structure
             for filepath, content in files.items():
@@ -249,7 +259,8 @@ class CodeExecutorAgent(BaseAgent):
                 "stdout": output['stdout'],
                 "stderr": output['stderr'],
                 "error": output['error'],
-                "timestamp": timestamp
+                "timestamp": execution_timestamp,
+                "run_dir": str(run_dir)
             }
             
             # Update test results in XML

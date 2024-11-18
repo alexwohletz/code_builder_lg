@@ -3,6 +3,7 @@ from typing import Annotated, TypedDict, Dict, List
 import operator
 from langchain_core.messages import BaseMessage, HumanMessage
 from langgraph.graph import StateGraph, END
+
 # Configure logging with a more detailed format
 logging.basicConfig(
     level=logging.INFO,
@@ -23,6 +24,7 @@ class CodeGenerationState(TypedDict):
     """State management for the code generation workflow."""
     messages: Annotated[List[BaseMessage], operator.add]
     xml_state: Annotated[str, take_latest_reducer]  # Current XML state
+    run_timestamp: Annotated[str, take_latest_reducer]  # Shared timestamp for debug outputs
     planning_result: Annotated[Dict, dict_merge_reducer]
     generation_result: Annotated[Dict, dict_merge_reducer]
     sandbox_result: Annotated[Dict, dict_merge_reducer]
@@ -131,6 +133,7 @@ class CodeGeneratorOrchestrator:
         initial_state = {
             "messages": [HumanMessage(content=prompt)],
             "xml_state": "",  # Will be populated by planner
+            "run_timestamp": "",  # Will be populated by planner
             "planning_result": {},
             "generation_result": {},
             "sandbox_result": {},
@@ -149,6 +152,7 @@ class CodeGeneratorOrchestrator:
             return {
                 "success": success,
                 "xml_state": result["xml_state"],
+                "run_timestamp": result["run_timestamp"],
                 "planning_result": result["planning_result"],
                 "generation_result": result["generation_result"],
                 "sandbox_result": result["sandbox_result"],

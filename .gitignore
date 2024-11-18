@@ -9,3 +9,5 @@ generated_modules/*
 langgraph_code_generator.egg-info/*
 langgraph_code_generator/generated_modules/*
 .aider*
+debug_output/*
+logs/*
