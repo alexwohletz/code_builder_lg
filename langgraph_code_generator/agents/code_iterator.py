@@ -18,10 +18,10 @@ class CodeIteratorAgent(BaseAgent):
         self.debug_dir = Path("debug_output")
         self.debug_dir.mkdir(exist_ok=True)
     
-    def _save_iteration_analysis(self, xml_content: str, timestamp: str) -> None:
+    def _save_iteration_analysis(self, xml_content: str, run_dir: Path) -> None:
         """Save the iteration analysis to debug directory."""
         try:
-            output_file = self.debug_dir / f"iteration_{timestamp}.xml"
+            output_file = run_dir / "iteration.xml"
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(xml_content)
             logger.info(f"Saved iteration analysis to {output_file}")
@@ -107,12 +107,22 @@ class CodeIteratorAgent(BaseAgent):
             if not test_results:
                 logger.warning("No test results found in XML state")
             
+            # Get run timestamp from state or create new one
+            timestamp = state.get("run_timestamp")
+            if not timestamp:
+                logger.warning("No run timestamp found in state, generating new one")
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # Create or get run directory
+            run_dir = self.debug_dir / f"run_{timestamp}"
+            run_dir.mkdir(exist_ok=True)
+            
             # Create messages for the model
             messages = [
                 SystemMessage(content="You are an expert code quality analyst."),
                 HumanMessage(content=PROMPT.format(
                     xml_state=xml_state,
-                    timestamp=datetime.now().strftime("%Y%m%d_%H%M%S")
+                    timestamp=timestamp
                 ))
             ]
             
@@ -120,9 +130,8 @@ class CodeIteratorAgent(BaseAgent):
             logger.info("Analyzing test results and generating updates")
             updated_planning = self._invoke_model(messages)
             
-            # Save the iteration analysis
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self._save_iteration_analysis(updated_planning, timestamp)
+            # Save the iteration analysis in run directory
+            self._save_iteration_analysis(updated_planning, run_dir)
             
             # Merge updated planning into original XML
             updated_xml = self._merge_planning_updates(xml_state, updated_planning)
@@ -144,8 +153,8 @@ class CodeIteratorAgent(BaseAgent):
                 "xml_state": updated_xml,
                 "iteration_result": {
                     "success": True,
-                    "timestamp": timestamp,
-                    "iteration_file": f"iteration_{timestamp}.xml"
+                    "run_dir": str(run_dir),
+                    "iteration_file": "iteration.xml"
                 }
             }
             
@@ -160,12 +169,12 @@ class CodeIteratorAgent(BaseAgent):
             }
     
     def validate_xml(self, xml_content: str) -> bool:
-        """Validate the XML against the base schema."""
+        """Validate the XML against the XSD schema."""
         try:
             from lxml import etree
             
-            # Load the base schema
-            schema_path = Path(__file__).parent.parent / "BASE_SCHEMA.xml"
+            # Load the XSD schema
+            schema_path = Path(__file__).parent.parent / "BASE_SCHEMA.xsd"
             with open(schema_path, 'r', encoding='utf-8') as f:
                 schema_doc = etree.parse(f)
             

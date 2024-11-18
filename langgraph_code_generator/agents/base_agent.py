@@ -53,10 +53,16 @@ class BaseAgent(ABC):
             logger.debug(f"Attempting to invoke model: {self.model_name}")
             logger.debug(f"Request messages: {[{'role': m.type, 'content': m.content[:100] + '...'} for m in messages]}")
             
+            # Convert message roles: 'human' -> 'user'
+            formatted_messages = []
+            for m in messages:
+                role = "user" if m.type == "human" else m.type
+                formatted_messages.append({"role": role, "content": m.content})
+            
             response: ChatCompletion = self.client.chat.completions.create(
                 model=self.model_name,
-                messages=[{"role": m.type, "content": m.content} for m in messages],
-                max_tokens=4096,
+                messages=formatted_messages,
+                max_tokens=8192,
                 temperature=0.1
             )
             

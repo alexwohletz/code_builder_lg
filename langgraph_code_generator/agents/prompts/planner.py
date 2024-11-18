@@ -6,7 +6,8 @@ Example: "Create a Python application that processes CSV files and generates sum
 - Identify and list all functional and non-functional requirements.
 - Break down the requirements into logical modules.
 - For each module, specify its purpose and dependencies.
-- Define the file structure, mapping each file to its corresponding module and describing its purpose.
+- Define a flat file structure within each directory (src/, tests/) to enable direct imports between files.
+- Ensure file organization supports simple, direct imports (e.g., 'from utils import Utils').
 - Populate the `<planning>` section of the XML with this information.
 - Ensure that each element has a unique identifier for traceability.
 
@@ -53,23 +54,33 @@ Example Output (XML, no comments, markdown, or other formatting):
         <file_structure>
             <file>
                 <file_name>main.py</file_name>
+                <file_path>src/main.py</file_path>
                 <module>DataProcessor</module>
                 <purpose>Main entry point of the application.</purpose>
             </file>
             <file>
                 <file_name>utils.py</file_name>
+                <file_path>src/utils.py</file_path>
                 <module>DataProcessor</module>
                 <purpose>Utility functions for data processing.</purpose>
             </file>
             <file>
                 <file_name>stats.py</file_name>
+                <file_path>src/stats.py</file_path>
                 <module>StatisticsGenerator</module>
                 <purpose>Functions to compute summary statistics.</purpose>
             </file>
             <file>
                 <file_name>error_handler.py</file_name>
+                <file_path>src/error_handler.py</file_path>
                 <module>ErrorHandler</module>
                 <purpose>Error detection and handling mechanisms.</purpose>
+            </file>
+            <file>
+                <file_name>test_stats.py</file_name>
+                <file_path>tests/test_stats.py</file_path>
+                <module>StatisticsGenerator</module>
+                <purpose>Unit tests for statistics functions.</purpose>
             </file>
         </file_structure>
     </planning>
@@ -78,4 +89,10 @@ Example Output (XML, no comments, markdown, or other formatting):
     <build/>
     <package/>
 </code_project>
+
+CRITICAL NOTES:
+1. Files in the same directory (e.g., src/) should be organized to support direct imports
+2. Avoid nested module structures that would require relative or package imports
+3. Each directory (src/, tests/) should have a flat structure for simpler imports
+4. Include file_path elements to explicitly define the location of each file
 """

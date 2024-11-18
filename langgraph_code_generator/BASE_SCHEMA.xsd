@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <!-- Root element -->
+    <xs:element name="code_project">
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Metadata section -->
+                <xs:element name="metadata">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="project_name" type="xs:string"/>
+                            <xs:element name="description" type="xs:string"/>
+                            <xs:element name="author" type="xs:string"/>
+                            <xs:element name="creation_date" type="xs:date"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Planning section -->
+                <xs:element name="planning">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="requirements">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="requirement" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:simpleContent>
+                                                    <xs:extension base="xs:string">
+                                                        <xs:attribute name="id" type="xs:string" use="required"/>
+                                                        <xs:attribute name="status" type="xs:string"/>
+                                                        <xs:attribute name="attempt" type="xs:integer"/>
+                                                    </xs:extension>
+                                                </xs:simpleContent>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="modules">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="module" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="name" type="xs:string"/>
+                                                    <xs:element name="description" type="xs:string"/>
+                                                    <xs:element name="dependencies" minOccurs="0">
+                                                        <xs:complexType>
+                                                            <xs:sequence>
+                                                                <xs:element name="dependency" type="xs:string" maxOccurs="unbounded"/>
+                                                            </xs:sequence>
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                                <xs:attribute name="id" type="xs:string" use="required"/>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="file_structure">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="file" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="file_name" type="xs:string"/>
+                                                    <xs:element name="module" type="xs:string"/>
+                                                    <xs:element name="purpose" type="xs:string"/>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="iteration_history" minOccurs="0">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="attempt" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="timestamp" type="xs:string"/>
+                                                    <xs:element name="failure_summary" type="xs:string"/>
+                                                    <xs:element name="attempted_solution" type="xs:string"/>
+                                                    <xs:element name="next_approach" type="xs:string"/>
+                                                </xs:sequence>
+                                                <xs:attribute name="number" type="xs:integer" use="required"/>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Generation section -->
+                <xs:element name="generation">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="files">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="file" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="file_name" type="xs:string"/>
+                                                    <xs:element name="file_path" type="xs:string"/>
+                                                    <xs:element name="file_contents" type="xs:string"/>
+                                                    <xs:element name="dependencies" minOccurs="0">
+                                                        <xs:complexType>
+                                                            <xs:sequence>
+                                                                <xs:element name="dependency" type="xs:string" maxOccurs="unbounded"/>
+                                                            </xs:sequence>
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="test_suite">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="suite_name" type="xs:string"/>
+                                        <xs:element name="test_files">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="test_file" maxOccurs="unbounded">
+                                                        <xs:complexType>
+                                                            <xs:sequence>
+                                                                <xs:element name="test_file_name" type="xs:string"/>
+                                                                <xs:element name="test_file_path" type="xs:string"/>
+                                                                <xs:element name="tests">
+                                                                    <xs:complexType>
+                                                                        <xs:sequence>
+                                                                            <xs:element name="test" maxOccurs="unbounded">
+                                                                                <xs:complexType>
+                                                                                    <xs:sequence>
+                                                                                        <xs:element name="test_name" type="xs:string"/>
+                                                                                        <xs:element name="test_description" type="xs:string"/>
+                                                                                        <xs:element name="test_code" type="xs:string"/>
+                                                                                    </xs:sequence>
+                                                                                </xs:complexType>
+                                                                            </xs:element>
+                                                                        </xs:sequence>
+                                                                    </xs:complexType>
+                                                                </xs:element>
+                                                                <xs:element name="test_results" minOccurs="0">
+                                                                    <xs:complexType>
+                                                                        <xs:sequence>
+                                                                            <xs:element name="result">
+                                                                                <xs:complexType>
+                                                                                    <xs:sequence>
+                                                                                        <xs:element name="status" type="xs:string"/>
+                                                                                        <xs:element name="output" type="xs:string"/>
+                                                                                        <xs:element name="error" type="xs:string" minOccurs="0"/>
+                                                                                        <xs:element name="timestamp" type="xs:string"/>
+                                                                                    </xs:sequence>
+                                                                                </xs:complexType>
+                                                                            </xs:element>
+                                                                        </xs:sequence>
+                                                                    </xs:complexType>
+                                                                </xs:element>
+                                                            </xs:sequence>
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Dependencies section -->
+                <xs:element name="dependencies">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="dependency" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="name" type="xs:string"/>
+                                        <xs:element name="version" type="xs:string"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Build section -->
+                <xs:element name="build">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="build_script" type="xs:string"/>
+                            <xs:element name="build_status" type="xs:string"/>
+                            <xs:element name="build_logs" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Package section -->
+                <xs:element name="package">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="package_name" type="xs:string"/>
+                            <xs:element name="package_version" type="xs:string"/>
+                            <xs:element name="package_files">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="package_file" type="xs:string" maxOccurs="unbounded"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="package_metadata">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="license" type="xs:string"/>
+                                        <xs:element name="repository" type="xs:string"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

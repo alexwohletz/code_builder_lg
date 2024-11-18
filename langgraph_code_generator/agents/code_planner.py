@@ -18,10 +18,10 @@ class CodePlannerAgent(BaseAgent):
         self.debug_dir = Path("debug_output")
         self.debug_dir.mkdir(exist_ok=True)
         
-    def _save_plan(self, plan: str, timestamp: str) -> None:
+    def _save_plan(self, plan: str, run_dir: Path) -> None:
         """Save the planning output to debug directory."""
         try:
-            plan_file = self.debug_dir / f"plan_{timestamp}.xml"
+            plan_file = run_dir / "plan.xml"
             with open(plan_file, 'w', encoding='utf-8') as f:
                 f.write(plan)
             logger.info(f"Saved planning output to {plan_file}")
@@ -65,19 +65,25 @@ Please analyze these requirements and provide a detailed project plan following 
             logger.info("Generating project plan")
             plan_xml = self._invoke_model(messages)
             
-            # Save the plan with timestamp
+            # Create run directory with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self._save_plan(plan_xml, timestamp)
+            run_dir = self.debug_dir / f"run_{timestamp}"
+            run_dir.mkdir(exist_ok=True)
             
-            # Update state with the plan
+            # Save the plan in the run directory
+            self._save_plan(plan_xml, run_dir)
+            
+            # Update state with the plan and run directory info
             logger.info("Updating state with generated plan")
             return {
                 **state,
                 "xml_state": plan_xml,
+                "run_timestamp": timestamp,  # Pass timestamp to other agents
                 "planning_result": {
                     "success": True,
                     "timestamp": timestamp,
-                    "plan_file": f"plan_{timestamp}.xml"
+                    "run_dir": str(run_dir),
+                    "plan_file": "plan.xml"
                 }
             }
             
